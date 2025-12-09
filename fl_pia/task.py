@@ -7,6 +7,7 @@ from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
 class Net(nn.Module):
@@ -82,18 +83,33 @@ def train(net, trainloader, epochs, lr, device):
 
 
 def test(net, testloader, device):
-    """Validate the model on the test set."""
+    """Validate the model on the test set, return multiple metrics."""
     net.to(device)
     net.eval()
     criterion = torch.nn.CrossEntropyLoss()
-    correct, loss = 0, 0.0
+
+    all_preds = []
+    all_labels = []
+    loss = 0.0
+
     with torch.no_grad():
         for batch in testloader:
             images = batch["img"].to(device)
             labels = batch["label"].to(device)
+
             outputs = net(images)
             loss += criterion(outputs, labels).item()
-            correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
-    accuracy = correct / len(testloader.dataset)
+
+            preds = torch.argmax(outputs, dim=1)
+
+            all_preds.extend(preds.cpu().numpy().tolist())
+            all_labels.extend(labels.cpu().numpy().tolist())
+
     loss = loss / len(testloader)
-    return loss, accuracy
+
+    accuracy = accuracy_score(all_labels, all_preds)
+    precision = precision_score(all_labels, all_preds, average="macro", zero_division=0)
+    recall = recall_score(all_labels, all_preds, average="macro", zero_division=0)
+    f1 = f1_score(all_labels, all_preds, average="macro", zero_division=0)
+
+    return loss, accuracy, precision, recall, f1

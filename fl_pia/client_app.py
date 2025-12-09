@@ -62,17 +62,31 @@ def evaluate(msg: Message, context: Context):
     num_partitions = context.node_config["num-partitions"]
     _, valloader = load_data(partition_id, num_partitions)
 
+
+    server_round = msg.content["config"]["server-round"]
     # Call the evaluation function
-    eval_loss, eval_acc = test_fn(
+    eval_loss, eval_acc, eval_precision, eval_recall, eval_f1 = test_fn(
         model,
         valloader,
         device,
     )
 
+    client_id = partition_id
+    print(
+        f"[Server Round {server_round} | Client {client_id}] "
+        f"loss={eval_loss:.4f}, acc={eval_acc:.4f}, "
+        f"precision={eval_precision:.4f}, recall={eval_recall:.4f}, f1={eval_f1:.4f}"
+    )
+
     # Construct and return reply Message
     metrics = {
+        "server_round": server_round,
+        "client_id": client_id,
         "eval_loss": eval_loss,
         "eval_acc": eval_acc,
+        "eval_precision": eval_precision,
+        "eval_recall": eval_recall,
+        "eval_f1": eval_f1,
         "num-examples": len(valloader.dataset),
     }
     metric_record = MetricRecord(metrics)
