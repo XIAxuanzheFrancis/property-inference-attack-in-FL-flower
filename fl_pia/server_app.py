@@ -185,7 +185,8 @@ def main(grid: Grid, context: Context) -> None:
         initial_arrays=arrays,
         train_config=ConfigRecord({"lr": lr}),
         num_rounds=num_rounds,
-        evaluate_fn=get_server_evaluate_fn(num_partitions),
+        evaluate_fn=None,
+        # evaluate_fn=get_server_evaluate_fn(num_partitions),
     )
 
     # Save final model to disk
